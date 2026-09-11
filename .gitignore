@@ -37,3 +37,8 @@ Thumbs.db
 *.key
 secrets.json
 backend/.venv/
+
+# Root-level env files (any drop-in credentials file at repo root, any extension)
+/.env
+/.env.*
+!/.env.example
