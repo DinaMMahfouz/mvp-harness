@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlmodel import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.routers import (
     applications,
@@ -24,6 +26,39 @@ from app.core.db import engine
 logger = logging.getLogger("harness")
 
 app = FastAPI(title="HARNESS — AI Release Assurance API", version="0.1.0")
+
+
+@app.middleware("http")
+async def catch_unhandled_exceptions(request: Request, call_next):
+    """Guarantee every unhandled error is a normal, CORS-visible JSON response.
+
+    Two real problems this fixes:
+    1. Security: an uncaught exception (e.g. a DB outage) would otherwise
+       leak a full internal stack trace (hosts, driver internals) to any
+       caller via Starlette's default debug response.
+    2. Correctness: Starlette gives @app.exception_handler(Exception) special
+       treatment - it's handled by ServerErrorMiddleware, which sits OUTSIDE
+       CORSMiddleware in the ASGI stack, so its responses never get CORS
+       headers attached. The browser then reports a passing backend response
+       as "blocked by CORS policy" / net::ERR_FAILED, and a fetch() promise
+       never resolves the way calling code expects. A plain @app.middleware
+       registered BEFORE add_middleware(CORSMiddleware, ...) below sits
+       INSIDE CORS (last-added-is-outermost), so whatever it returns -
+       including a caught exception's response - flows back out through
+       CORSMiddleware and gets headers applied correctly.
+    Verified live: without this, GET /api/applications during a DB outage
+    produced a 500 with no CORS header, which Chrome surfaced as
+    net::ERR_FAILED and left the frontend stuck on "Loading..." forever
+    instead of rendering its error state.
+    """
+    try:
+        return await call_next(request)
+    except Exception as exc:  # noqa: BLE001 - deliberately broad: last line of defense
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        status_code = 503 if isinstance(exc, SQLAlchemyError) else 500
+        detail = "Database unavailable" if isinstance(exc, SQLAlchemyError) else "Internal server error"
+        return JSONResponse(status_code=status_code, content={"detail": detail, "error_type": type(exc).__name__})
+
 
 app.add_middleware(
     CORSMiddleware,

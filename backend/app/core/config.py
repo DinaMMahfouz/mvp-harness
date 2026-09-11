@@ -6,13 +6,21 @@ Never hardcode secrets here — everything comes from the process environment
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Resolve .env relative to the backend/ package root, not the process's cwd.
+# pydantic-settings otherwise silently falls back to defaults whenever
+# uvicorn is launched from a different working directory (e.g. --app-dir,
+# or any dev-server launcher that doesn't chdir first) - masking a real
+# config file as if it simply didn't exist.
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/postgres"
 
