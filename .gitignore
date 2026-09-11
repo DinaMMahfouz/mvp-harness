@@ -42,3 +42,9 @@ backend/.venv/
 /.env
 /.env.*
 !/.env.example
+
+# Local SQLite development database (never commit real run data)
+*.db
+*.sqlite
+*.sqlite3
+backend/.env.bak

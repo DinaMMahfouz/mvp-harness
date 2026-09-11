@@ -21,7 +21,7 @@ from app.api.routers import (
     workspaces,
 )
 from app.core.config import settings
-from app.core.db import engine
+from app.core.db import USING_SQLITE, create_db_and_tables, engine
 
 logger = logging.getLogger("harness")
 
@@ -82,10 +82,26 @@ app.include_router(automation.router, prefix="/api")
 
 @app.on_event("startup")
 def on_startup() -> None:
+    if USING_SQLITE:
+        # Local SQLite has no migration pipeline: the file may not exist yet, or
+        # may predate a model change. Creating tables here is idempotent
+        # (create_all skips what already exists) and is what makes a fresh clone
+        # runnable with no external database. Deliberately NOT done for Postgres,
+        # where Supabase migrations own the schema.
+        try:
+            create_db_and_tables()
+            logger.info("SQLite schema ensured (local development database)")
+        except Exception:
+            logger.exception("Failed to create SQLite schema at startup")
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        logger.info("Database connectivity check OK (env=%s)", settings.ENV)
+        logger.info(
+            "Database connectivity check OK (env=%s, backend=%s)",
+            settings.ENV,
+            "sqlite" if USING_SQLITE else "postgres",
+        )
     except Exception:
         logger.exception("Database connectivity check FAILED at startup")
 
