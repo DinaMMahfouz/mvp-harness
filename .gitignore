@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Demo target
+demo-target/.env
+demo-target/.env.*
+!demo-target/.env.example
+
+# Generated reports (do not commit real data exports)
+**/harness_issue_register*.xlsx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Secrets, always
+*.pem
+*.key
+secrets.json
+backend/.venv/
