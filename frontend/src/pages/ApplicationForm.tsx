@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useApi } from "../lib/useApi";
 import { Loading, ErrorState } from "../components/States";
+import { AuthorizedUseNotice } from "../components/AuthorizedUseNotice";
 import { APP_STATUSES, APP_TYPES, type AppStatus, type AppType } from "../types/enums";
 import type { ConnectionTestResult } from "../types/models";
 
@@ -42,7 +43,12 @@ export function ApplicationForm({ mode }: { mode: "create" | "edit" }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data: workspaces, loading: loadingWorkspaces } = useApi(() => api.listWorkspaces(), []);
+  const {
+    data: workspaces,
+    loading: loadingWorkspaces,
+    error: workspacesError,
+    reload: reloadWorkspaces,
+  } = useApi(() => api.listWorkspaces(), []);
   const { data: existing, loading: loadingApp, error: loadError } = useApi(
     () => (mode === "edit" && id ? api.getApplication(id) : Promise.resolve(null)),
     [mode, id]
@@ -164,6 +170,9 @@ export function ApplicationForm({ mode }: { mode: "create" | "edit" }) {
   if (mode === "edit" && loadingApp) return <Loading label="Loading application…" />;
   if (mode === "edit" && loadError) return <ErrorState message={loadError} />;
   if (mode === "create" && loadingWorkspaces) return <Loading label="Loading workspaces…" />;
+  if (mode === "create" && workspacesError) {
+    return <ErrorState message={workspacesError} onRetry={reloadWorkspaces} />;
+  }
   if (mode === "create" && !loadingWorkspaces && (!workspaces || workspaces.length === 0)) {
     return (
       <ErrorState message="No workspace exists yet. A workspace must be created via the API before registering applications (POST /api/workspaces)." />
@@ -177,6 +186,10 @@ export function ApplicationForm({ mode }: { mode: "create" | "edit" }) {
           <h1 className="page-title">{mode === "create" ? "Add Application" : `Edit ${existing?.name ?? "Application"}`}</h1>
           <p className="page-subtitle">Register the AI app HARNESS will run assurance tests against.</p>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 18 }}>
+        <AuthorizedUseNotice compact />
       </div>
 
       <form onSubmit={handleSubmit} className="card">

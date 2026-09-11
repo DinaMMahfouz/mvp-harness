@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import { useApi } from "../lib/useApi";
 import { Loading, ErrorState, EmptyState } from "../components/States";
 import { AppStatusBadge, DecisionBadge, ResultBadge } from "../components/Badges";
+import { AuthorizedUseNotice } from "../components/AuthorizedUseNotice";
 
 type Tab = "overview" | "suites" | "runs" | "findings" | "hardening" | "reports";
 
@@ -79,6 +80,10 @@ export function ApplicationDetail() {
             Edit
           </Link>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <AuthorizedUseNotice compact />
       </div>
 
       {actionError && (

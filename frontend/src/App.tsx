@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { Home } from "./pages/Home";
 import { Dashboard } from "./pages/Dashboard";
 import { ApplicationRegistry } from "./pages/ApplicationRegistry";
 import { ApplicationForm } from "./pages/ApplicationForm";
@@ -16,8 +17,9 @@ import { NotFound } from "./pages/NotFound";
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
       <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/applications" element={<ApplicationRegistry />} />
         <Route path="/applications/new" element={<ApplicationForm mode="create" />} />
         <Route path="/applications/:id/edit" element={<ApplicationForm mode="edit" />} />
