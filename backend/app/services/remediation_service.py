@@ -7,8 +7,21 @@ from sqlmodel import Session
 
 from app.models import Finding, FindingStatus, Remediation
 
+# OPEN -> RESOLVED is deliberately allowed, not just OPEN -> IN_PROGRESS -> RESOLVED.
+# IN_PROGRESS models a human picking a finding up; the auto-resolve path in
+# comparison_service (a retest re-sending the byte-identical execution_prompt and
+# getting a PASS) is evidence-backed resolution that never passes through a human
+# triage step. Findings are always created OPEN by finding_service, so requiring
+# IN_PROGRESS first made every FIXED classification raise InvalidTransitionError,
+# which surfaced as an HTTP 400 from POST /comparisons *after* the
+# retest_comparisons row had already been committed - breaking the
+# harden -> retest -> resolve loop and leaving inconsistent state behind.
 ALLOWED_TRANSITIONS: dict[FindingStatus, set[FindingStatus]] = {
-    FindingStatus.OPEN: {FindingStatus.IN_PROGRESS, FindingStatus.ACCEPT_RISK},
+    FindingStatus.OPEN: {
+        FindingStatus.IN_PROGRESS,
+        FindingStatus.RESOLVED,
+        FindingStatus.ACCEPT_RISK,
+    },
     FindingStatus.IN_PROGRESS: {FindingStatus.RESOLVED, FindingStatus.ACCEPT_RISK},
     FindingStatus.RESOLVED: {FindingStatus.ACCEPT_RISK},
     FindingStatus.ACCEPT_RISK: set(),
@@ -37,8 +50,9 @@ def set_status(
     if not _is_allowed(finding.status, new_status):
         raise InvalidTransitionError(
             f"Cannot transition finding {finding.id} from {finding.status.value} "
-            f"to {new_status.value}. Allowed transitions: OPEN->IN_PROGRESS->RESOLVED, "
-            "or ->ACCEPT_RISK from any state."
+            f"to {new_status.value}. Allowed transitions: OPEN->IN_PROGRESS->RESOLVED "
+            "(OPEN->RESOLVED directly is also permitted, for evidence-backed retest "
+            "auto-resolution), or ->ACCEPT_RISK from any state."
         )
 
     remediation = Remediation(

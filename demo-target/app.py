@@ -30,6 +30,17 @@ class ChatResponse(BaseModel):
     mode: str
 
 
+@app.get("/")
+def root() -> dict:
+    """Liveness/identity route.
+
+    Exists so that hitting the base URL in a browser identifies the service
+    and its active mode instead of returning a bare 404. Deliberately exposes
+    nothing beyond what /health already does.
+    """
+    return {"service": "harness-demo-target", "status": "running", "mode": MODE}
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "mode": MODE}

@@ -13,9 +13,12 @@ described in the plan (FIXED -> resolve finding, REGRESSION -> new finding).
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Iterable
+
+logger = logging.getLogger("harness.comparison")
 
 FAILING = {"FAIL", "REVIEW"}
 
@@ -124,28 +127,57 @@ def compare(session, baseline_run_id, retest_run_id):
 
     application = session.get(Application, baseline_run_obj.application_id)
 
+    # The retest_comparisons row above is already committed. From here on, each
+    # per-finding side-effect is isolated: one failure (an unexpected status
+    # transition, a missing row) must not abort the remaining rows and must not
+    # turn an already-persisted comparison into an HTTP error, which would leave
+    # the caller believing no comparison exists when one does. Failures are
+    # recorded on the returned object so they stay visible rather than silent.
+    side_effect_errors: list[str] = []
+
     for row in details:
         case_id = row["test_case_id"]
-        if row["classification"] == "FIXED":
-            existing = finding_service.find_open_finding_for_case(
-                session, baseline_run_obj.application_id, uuid.UUID(case_id)
+        try:
+            if row["classification"] == "FIXED":
+                existing = finding_service.find_open_finding_for_case(
+                    session, baseline_run_obj.application_id, uuid.UUID(case_id)
+                )
+                if existing is not None:
+                    remediation_service.set_status(
+                        session,
+                        existing,
+                        FindingStatus.RESOLVED,
+                        note=(
+                            f"Auto-resolved: retest {retest_run_id} confirmed this test case "
+                            "now PASSes with the exact same prompt."
+                        ),
+                        changed_by="comparison_service",
+                    )
+            elif row["classification"] == "REGRESSION":
+                retest_result = retest_result_by_case.get(case_id)
+                if retest_result is not None and application is not None:
+                    finding_service.upsert_finding_for_result(
+                        session, application, retest_run_obj, retest_result
+                    )
+        except Exception as exc:  # noqa: BLE001 - per-row isolation, see comment above
+            session.rollback()
+            logger.exception(
+                "Finding side-effect failed for test_case_id=%s (%s)",
+                case_id,
+                row["classification"],
             )
-            if existing is not None:
-                remediation_service.set_status(
-                    session,
-                    existing,
-                    FindingStatus.RESOLVED,
-                    note=(
-                        f"Auto-resolved: retest {retest_run_id} confirmed this test case "
-                        "now PASSes with the exact same prompt."
-                    ),
-                    changed_by="comparison_service",
-                )
-        elif row["classification"] == "REGRESSION":
-            retest_result = retest_result_by_case.get(case_id)
-            if retest_result is not None and application is not None:
-                finding_service.upsert_finding_for_result(
-                    session, application, retest_run_obj, retest_result
-                )
+            side_effect_errors.append(
+                f"{row['classification']} test_case_id={case_id}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
+    if side_effect_errors:
+        comparison.details = [
+            *details,
+            {"_side_effect_errors": side_effect_errors},
+        ]
+        session.add(comparison)
+        session.commit()
+        session.refresh(comparison)
 
     return comparison
