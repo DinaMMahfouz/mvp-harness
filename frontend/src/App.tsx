@@ -1,6 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Home } from "./pages/Home";
+import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { ApplicationRegistry } from "./pages/ApplicationRegistry";
 import { ApplicationForm } from "./pages/ApplicationForm";
@@ -18,20 +20,23 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route element={<Layout />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/applications" element={<ApplicationRegistry />} />
-        <Route path="/applications/new" element={<ApplicationForm mode="create" />} />
-        <Route path="/applications/:id/edit" element={<ApplicationForm mode="edit" />} />
-        <Route path="/applications/:id" element={<ApplicationDetail />} />
-        <Route path="/applications/:id/test-plan" element={<TestPlan />} />
-        <Route path="/applications/:id/findings" element={<FindingsBoard />} />
-        <Route path="/applications/:id/retest" element={<RetestComparisonPage />} />
-        <Route path="/applications/:id/release-decision" element={<ReleaseDecisionPage />} />
-        <Route path="/applications/:id/reports" element={<ReportsPage />} />
-        <Route path="/runs/:id" element={<RunDetail />} />
-        <Route path="/findings/:id" element={<FindingDetail />} />
-        <Route path="*" element={<NotFound />} />
+      <Route path="/login" element={<Login />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/applications" element={<ApplicationRegistry />} />
+          <Route path="/applications/new" element={<ApplicationForm mode="create" />} />
+          <Route path="/applications/:id/edit" element={<ApplicationForm mode="edit" />} />
+          <Route path="/applications/:id" element={<ApplicationDetail />} />
+          <Route path="/applications/:id/test-plan" element={<TestPlan />} />
+          <Route path="/applications/:id/findings" element={<FindingsBoard />} />
+          <Route path="/applications/:id/retest" element={<RetestComparisonPage />} />
+          <Route path="/applications/:id/release-decision" element={<ReleaseDecisionPage />} />
+          <Route path="/applications/:id/reports" element={<ReportsPage />} />
+          <Route path="/runs/:id" element={<RunDetail />} />
+          <Route path="/findings/:id" element={<FindingDetail />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Route>
     </Routes>
   );

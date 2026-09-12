@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useApi } from "../lib/useApi";
+import { supabase } from "../lib/supabaseClient";
 import { Loading, ErrorState, EmptyState } from "../components/States";
 import { DecisionBadge } from "../components/Badges";
 import type { Application, Finding, ReleaseDecision } from "../types/models";
@@ -31,6 +32,20 @@ async function loadDashboard(): Promise<AppCardData[]> {
 
 export function Dashboard() {
   const { data, loading, error, reload } = useApi(loadDashboard, []);
+
+  // Real-time: a release decision or new CRITICAL finding made anywhere
+  // (this session, a teammate's, or a retest completing) shows up on the
+  // dashboard without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-updates")
+      .on("postgres_changes", { event: "*", schema: "public", table: "release_decisions" }, () => reload())
+      .on("postgres_changes", { event: "*", schema: "public", table: "findings" }, () => reload())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [reload]);
 
   const totals = useMemo(() => {
     if (!data) return { totalApps: 0, totalCritical: 0, blockedApps: 0 };

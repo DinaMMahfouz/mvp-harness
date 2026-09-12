@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useApi } from "../lib/useApi";
+import { supabase } from "../lib/supabaseClient";
 import { Loading, ErrorState, EmptyState } from "../components/States";
 import { DecisionBadge, ResultBadge, SeverityBadge } from "../components/Badges";
 import type { ReleaseDecision } from "../types/models";
@@ -73,10 +74,44 @@ export function RunDetail() {
     if (data) setDecision(data.decision);
   }, [data]);
 
-  // Poll while the run is still in progress.
+  // Real-time: reload the moment Postgres actually changes, instead of
+  // guessing with a poll interval. Subscribed for the life of the page (not
+  // just while "in progress") so a result edited/added from elsewhere - or
+  // a race where the run finished between the initial load and this effect
+  // mounting - is still picked up.
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`run-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "test_results", filter: `test_run_id=eq.${id}` },
+        () => reload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "test_runs", filter: `id=eq.${id}` },
+        () => reload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "release_decisions", filter: `test_run_id=eq.${id}` },
+        () => reload()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, reload]);
+
+  // Fallback poll, only while the run is actively in progress: Realtime
+  // delivery isn't guaranteed (a dropped websocket, a brief reconnect), and
+  // this is the one view where a stuck "RUNNING" status because of a missed
+  // event would be actively misleading about whether assurance is real.
   useEffect(() => {
     if (!data || (data.run.status !== "PENDING" && data.run.status !== "RUNNING")) return;
-    const t = setInterval(() => reload(), 3000);
+    const t = setInterval(() => reload(), 5000);
     return () => clearInterval(t);
   }, [data, reload]);
 

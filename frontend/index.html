@@ -17,6 +17,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Supabase JS client from the CDN (UMD build), exposed as window.supabase.
+         src/lib/supabaseClient.ts wraps this in a typed ES module rather than
+         re-importing the npm package, so there is exactly one client build on
+         the page. Must load and execute before main.tsx. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
