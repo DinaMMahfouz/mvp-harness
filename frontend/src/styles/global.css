@@ -92,13 +92,14 @@ button, input, select, textarea {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--color-accent), #8b5cf6);
+  background: var(--brand-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 800;
   color: white;
+  flex-shrink: 0;
 }
 
 .nav-link {
@@ -170,13 +171,14 @@ button, input, select, textarea {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--brand-gradient);
+  border-color: transparent;
   color: white;
+  box-shadow: 0 4px 14px rgba(99, 79, 245, 0.28);
 }
 .btn-primary:hover {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 18px rgba(99, 79, 245, 0.38);
 }
 .btn-danger {
   border-color: var(--color-not-ready-border);
