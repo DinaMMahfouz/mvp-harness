@@ -20,6 +20,11 @@ demo-target/.env
 demo-target/.env.*
 !demo-target/.env.example
 
+# Dummy agent test target
+dummy-agent-target/.env
+dummy-agent-target/.env.*
+!dummy-agent-target/.env.example
+
 # Generated reports (do not commit real data exports)
 **/harness_issue_register*.xlsx
 

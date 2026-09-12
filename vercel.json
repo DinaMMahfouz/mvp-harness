@@ -17,6 +17,10 @@
         "demo_target": {
             "root": "demo-target",
             "entrypoint": "app:app"
+        },
+        "dummy_agent_target": {
+            "root": "dummy-agent-target",
+            "entrypoint": "app:app"
         }
     },
     "rewrites": [
@@ -32,6 +36,13 @@
             "destination": {
                 "type": "service",
                 "service": "demo_target"
+            }
+        },
+        {
+            "source": "/dummy-agent(/.*)?",
+            "destination": {
+                "type": "service",
+                "service": "dummy_agent_target"
             }
         },
         {
