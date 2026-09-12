@@ -54,6 +54,23 @@
   --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
 
   --focus-ring: 0 0 0 3px rgba(91, 140, 255, 0.45);
+
+  /* Marketing/landing brand palette — deliberately always-dark (like the app's
+     severity/decision colors, this is product identity, not a themeable surface). */
+  --brand-bg: #08070f;
+  --brand-bg-elevated: #0f0e1c;
+  --brand-card: #131226;
+  --brand-card-hover: #191733;
+  --brand-border: #26234a;
+  --brand-border-strong: #35316b;
+  --brand-text: #f2f1fb;
+  --brand-text-muted: #a29fc4;
+  --brand-text-faint: #6f6c93;
+  --brand-violet: #8b5cf6;
+  --brand-indigo: #6366f1;
+  --brand-gradient: linear-gradient(135deg, #8b5cf6, #6366f1 55%, #4f46e5);
+  --brand-gradient-text: linear-gradient(90deg, #c4b5fd, #a5b4fc 60%, #818cf8);
+  --brand-glow: 0 0 120px rgba(139, 92, 246, 0.25);
 }
 
 @media (prefers-color-scheme: light) {
