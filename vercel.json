@@ -7,6 +7,10 @@
         "backend": {
             "root": "backend",
             "entrypoint": "app.main:app"
+        },
+        "demo_target": {
+            "root": "demo-target",
+            "entrypoint": "app:app"
         }
     },
     "rewrites": [
@@ -15,6 +19,13 @@
             "destination": {
                 "type": "service",
                 "service": "backend"
+            }
+        },
+        {
+            "source": "/demo(/.*)?",
+            "destination": {
+                "type": "service",
+                "service": "demo_target"
             }
         },
         {
