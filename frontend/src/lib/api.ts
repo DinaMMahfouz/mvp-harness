@@ -44,7 +44,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch (err) {
-    throw new ApiError(0, `Network error reaching HARNESS API at ${BASE_URL}${path}. Is the backend running?`);
+    throw new ApiError(0, `Network error reaching Plumbline API at ${BASE_URL}${path}. Is the backend running?`);
   }
 
   if (!res.ok) {
@@ -175,7 +175,7 @@ export const api = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `harness_issue_register_${applicationName.replace(/\s+/g, "_")}.xlsx`;
+    a.download = `plumbline_issue_register_${applicationName.replace(/\s+/g, "_")}.xlsx`;
     document.body.appendChild(a);
     a.click();
     a.remove();

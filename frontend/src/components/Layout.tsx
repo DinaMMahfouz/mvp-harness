@@ -4,9 +4,8 @@ export function Layout() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="HARNESS home">
-          <span className="brand-mark">H</span>
-          HARNESS
+        <Link to="/" className="brand" style={{ color: "inherit" }} aria-label="Plumbline home">
+          Plumbline
         </Link>
         <NavLink to="/dashboard" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
           Dashboard

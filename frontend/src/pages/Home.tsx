@@ -76,8 +76,7 @@ export function Home() {
     <div className="landing">
       <nav className="landing-nav">
         <div className="brand">
-          <span className="brand-mark">H</span>
-          HARNESS
+          Plumbline
         </div>
         <div className="landing-nav-links">
           <a href="#how-it-works">How it works</a>
@@ -160,7 +159,7 @@ export function Home() {
         </div>
       </div>
 
-      <section className="landing-section" style={{ paddingTop: 0, paddingBottom: 40 }} aria-label="HARNESS workflow">
+      <section className="landing-section" style={{ paddingTop: 0, paddingBottom: 40 }} aria-label="Plumbline workflow">
         <div className="flow-strip" style={{ justifyContent: "center" }}>
           {FLOW_STEPS.map((step, i) => (
             <span key={step} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -182,7 +181,7 @@ export function Home() {
         <div className="section-eyebrow">The core loop</div>
         <h2 className="section-heading">Three features. One decision.</h2>
         <p className="section-sub">
-          HARNESS is intentionally narrow. Everything else — email alerts, the Excel issue register, n8n automation
+          Plumbline is intentionally narrow. Everything else — email alerts, the Excel issue register, n8n automation
           — supports this loop. None of it decides anything on its own.
         </p>
         <div className="feature-grid">
@@ -261,8 +260,7 @@ export function Home() {
         <div className="landing-footer-grid">
           <div className="landing-footer-brand">
             <div className="brand">
-              <span className="brand-mark">H</span>
-              HARNESS
+              Plumbline
             </div>
             <p>AI Release Assurance. For AI applications you own or are authorized to test.</p>
           </div>
@@ -286,7 +284,7 @@ export function Home() {
           </div>
         </div>
         <div className="landing-footer-bottom">
-          <p className="muted">© 2026 HARNESS. AI Release Assurance.</p>
+          <p className="muted">© 2026 Plumbline. AI Release Assurance.</p>
           <p className="muted">For AI applications you own or are authorized to test.</p>
         </div>
       </footer>
