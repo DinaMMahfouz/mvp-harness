@@ -715,3 +715,413 @@ code.inline {
 .landing-footer .muted {
   font-size: 12px;
 }
+
+/* ===========================================================================
+   Landing page — styles for markup that shipped without any.
+   ===========================================================================
+   Home.tsx referenced 33 class names that were never defined in this file:
+   the hero grid, the release-decision card, the integrations row, the stats
+   band, the CTA banner and the whole footer. Undefined classes are not an
+   error in CSS - the browser silently renders the elements as bare inline
+   text - which is why the hero sat flush against the left edge with no
+   centring and the decision card came out as a run-on line of words
+   ("READYwith conditions · assurance score 87Blocking findings0").
+
+   Everything below uses the existing tokens so the landing page belongs to
+   the same design system as the app shell, rather than becoming a second
+   visual language maintained by hand.
+   =========================================================================== */
+
+/* --- Hero ---------------------------------------------------------------- */
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(48px, 7vw, 88px) clamp(24px, 4vw, 48px) 64px;
+}
+
+.hero-grid h1 {
+  font-size: clamp(34px, 4.2vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  margin: 16px 0 20px;
+}
+
+.hero-grid .hero-cta-row {
+  justify-content: flex-start;
+}
+
+/* The decision card is the hero's proof, so it gets a subtle lift off the
+   background rather than sitting flat like the cards inside the app. */
+.hero-visual {
+  position: relative;
+  min-height: 260px;
+}
+
+.hero-visual-card {
+  background: linear-gradient(160deg, var(--color-bg-card), var(--color-bg-elevated));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+.hvc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.hvc-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.hvc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-ready);
+  box-shadow: 0 0 0 4px var(--color-ready-bg);
+}
+
+.hvc-score {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-ready);
+}
+
+.hvc-score-label {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.hvc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+.hvc-row:first-of-type {
+  margin-top: 18px;
+}
+
+.hvc-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.hvc-val {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Overlaps the main card's lower-left corner. Absolute on wide screens only —
+   see the breakpoint below, where it returns to normal flow so it can never
+   cover the card's content on a narrow one. */
+.hero-float-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-card);
+  position: absolute;
+  left: -18px;
+  bottom: -26px;
+}
+
+.hfc-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.hfc-title {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+.hfc-val {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* --- "Built on" integrations --------------------------------------------- */
+
+.integrations-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 34px;
+}
+
+.integrations-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.integrations-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Without this the four names rendered as one word: "ClaudeSupabasen8nGitHub". */
+.integration-chip {
+  padding: 5px 11px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-elevated);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* --- Landing button variants --------------------------------------------- */
+
+.btn-brand {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.btn-brand:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+/* Same specificity guard as .btn-primary: the generic `a:hover` colour rule
+   (0,1,1) would otherwise repaint a link-button's label on hover. */
+a.btn-brand,
+a.btn-brand:hover,
+a.btn-brand:focus,
+a.btn-brand:active {
+  color: #fff;
+}
+
+.btn-ghost-brand {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+.btn-ghost-brand:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+a.btn-ghost-brand,
+a.btn-ghost-brand:hover,
+a.btn-ghost-brand:focus,
+a.btn-ghost-brand:active {
+  color: var(--color-text);
+}
+
+/* --- Feature cards ------------------------------------------------------- */
+
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+/* --- Stats band ---------------------------------------------------------- */
+
+.landing-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px;
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 32px 0;
+}
+
+.landing-stat {
+  text-align: center;
+}
+
+.ls-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.ls-label {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* --- Closing CTA --------------------------------------------------------- */
+
+.cta-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: clamp(28px, 4vw, 44px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-accent-bg), var(--color-bg-elevated));
+}
+
+.cta-banner h2 {
+  font-size: clamp(22px, 2.6vw, 30px);
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+}
+
+.cta-banner p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.cta-banner-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cta-banner-form input {
+  min-width: 260px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 13.5px;
+}
+.cta-banner-form input::placeholder {
+  color: var(--color-text-faint);
+}
+
+/* --- Footer -------------------------------------------------------------- */
+
+.landing-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 56px clamp(24px, 4vw, 48px) 32px;
+}
+
+.landing-footer-brand p {
+  margin: 10px 0 0;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.footer-col-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: 3px;
+}
+
+.footer-col a {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.footer-col a:hover {
+  color: var(--color-text);
+}
+
+.landing-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 20px clamp(24px, 4vw, 48px) 40px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+.landing-footer-bottom p {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+/* --- Narrow screens ------------------------------------------------------ */
+
+@media (max-width: 980px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+  /* Back into normal flow: absolutely positioned, it would sit on top of the
+     card's own rows once the column narrows. */
+  .hero-float-card {
+    position: static;
+    margin-top: 14px;
+  }
+  .hero-visual {
+    min-height: 0;
+  }
+  .landing-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .cta-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .landing-footer-grid {
+    grid-template-columns: 1fr;
+  }
+  .cta-banner-form,
+  .cta-banner-form input {
+    width: 100%;
+  }
+}

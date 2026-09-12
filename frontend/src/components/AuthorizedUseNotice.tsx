@@ -20,7 +20,7 @@ export function AuthorizedUseNotice({ compact = false }: { compact?: boolean }) 
         <WarningIcon />
       </span>
       <span>
-        <strong>Authorized use only.</strong> HARNESS is for testing AI applications you own or are explicitly
+        <strong>Authorized use only.</strong> Plumbline is for testing AI applications you own or are explicitly
         authorized to test. It performs controlled assurance probes, not destructive exploitation.
       </span>
     </div>

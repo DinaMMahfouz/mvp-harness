@@ -184,7 +184,7 @@ export function ApplicationForm({ mode }: { mode: "create" | "edit" }) {
       <div className="page-header">
         <div>
           <h1 className="page-title">{mode === "create" ? "Add Application" : `Edit ${existing?.name ?? "Application"}`}</h1>
-          <p className="page-subtitle">Register the AI app HARNESS will run assurance tests against.</p>
+          <p className="page-subtitle">Register the AI app Plumbline will run assurance tests against.</p>
         </div>
       </div>
 

@@ -280,7 +280,7 @@ export function Home() {
           </div>
           <div className="footer-col">
             <div className="footer-col-title">Company</div>
-            <span style={{ color: "var(--brand-text-muted)", fontSize: 13 }}>Built with Claude Code</span>
+            <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>Built with Claude Code</span>
           </div>
         </div>
         <div className="landing-footer-bottom">
