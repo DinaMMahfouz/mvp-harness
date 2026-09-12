@@ -185,6 +185,39 @@ button, input, select, textarea {
 .btn-danger:hover {
   background: var(--color-not-ready-bg);
 }
+
+/* Buttons rendered as links must keep their own text colour.
+ *
+ * The generic `a:hover { color: var(--color-accent-hover) }` rule near the top
+ * of this file has specificity (0,1,1), which beats `.btn-primary`'s (0,1,0).
+ * So on hover an <a class="btn btn-primary"> got its text repainted to
+ * --color-accent-hover (#7aa2ff) while `.btn-primary:hover` painted the
+ * background the *same* #7aa2ff -- the label vanished into the button. Reported
+ * as an empty-dashboard bug, but it was never about the empty state: it happens
+ * on any hovered link-button, on any page. It just gets noticed on the empty
+ * dashboard because that CTA is the one thing a new user aims at.
+ *
+ * These selectors are (0,2,0) / (0,2,1) so they win, and they restate the
+ * colour on :hover, :focus and :active so no future pseudo-class rule silently
+ * takes it back. */
+a.btn,
+a.btn:hover,
+a.btn:focus,
+a.btn:active {
+  color: var(--color-text);
+}
+a.btn-primary,
+a.btn-primary:hover,
+a.btn-primary:focus,
+a.btn-primary:active {
+  color: #fff;
+}
+a.btn-danger,
+a.btn-danger:hover,
+a.btn-danger:focus,
+a.btn-danger:active {
+  color: var(--color-not-ready);
+}
 .btn-sm {
   padding: 5px 10px;
   font-size: 12.5px;

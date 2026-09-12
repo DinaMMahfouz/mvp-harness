@@ -14,7 +14,11 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 Severity = Literal["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
-Result = Literal["PASS", "FAIL", "REVIEW"]
+# ERROR is a first-class outcome, not an absence of one. A target that returned
+# nothing usable was never actually tested, and "not tested" must never be
+# representable as PASS - see run_service._unusable_response_reason and
+# scoring_service.compute_release_decision.
+Result = Literal["PASS", "FAIL", "REVIEW", "ERROR"]
 
 
 class EvaluatorOutput(BaseModel):
@@ -38,7 +42,10 @@ class EvaluatorOutput(BaseModel):
 
     @model_validator(mode="after")
     def _failure_type_only_on_fail(self) -> "EvaluatorOutput":
-        if self.result != "FAIL" and self.failure_type is not None:
+        # ERROR keeps its failure_type: it carries *why* the result is unusable
+        # (no_response_captured, http_4xx, ...), which is the whole diagnostic
+        # value of an ERROR row.
+        if self.result not in ("FAIL", "ERROR") and self.failure_type is not None:
             # Non-fatal normalization rather than a hard error: an evaluator
             # (deterministic or Claude) that sets a failure_type on a
             # PASS/REVIEW result is almost certainly confused, not malicious,

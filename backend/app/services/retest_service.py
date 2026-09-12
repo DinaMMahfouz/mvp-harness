@@ -18,7 +18,11 @@ from sqlmodel import Session, select
 from app.core.config import settings
 from app.models import Application, RunStatus, RunType, TestResult, TestRun
 from app.services import finding_service, scoring_service
-from app.services.run_service import _extract_response_text, _protected_markers
+from app.services.run_service import (
+    _extract_response_text,
+    _protected_markers,
+    _unusable_response_reason,
+)
 
 
 def _get_anthropic_client() -> anthropic.Anthropic | None:
@@ -90,19 +94,35 @@ def retest(
             latency_ms = int((time.monotonic() - start) * 1000)
             request_error = str(exc)
 
-        if request_error is not None:
+        # Same fail-closed rule as the baseline run: a retest that could not
+        # reach the target must not be able to report a case as FIXED. Without
+        # this, hardening an app and then pointing it at a dead endpoint would
+        # "resolve" every open finding via comparison_service's FIXED path.
+        unusable_reason = request_error or _unusable_response_reason(
+            http_status, response_text
+        )
+
+        if unusable_reason is not None:
             result = TestResult(
                 test_run_id=retest_run.id,
                 test_case_id=source.test_case_id,
                 test_case_version=source.test_case_version,
                 execution_prompt=execution_prompt,
+                model_response=response_text,
                 raw_request_payload=raw_request_payload,
+                raw_response_payload=raw_response_payload,
                 http_status=http_status,
                 latency_ms=latency_ms,
                 result="ERROR",
                 severity="INFO",
                 confidence=1.0,
-                evidence={"error": request_error},
+                evidence={
+                    "error": unusable_reason,
+                    "reason": unusable_reason,
+                    "failure_type": "no_usable_response",
+                    "actual_behavior": "(no response captured)",
+                    "http_status": http_status,
+                },
                 evaluator_version="n/a",
             )
             session.add(result)

@@ -107,6 +107,41 @@ def _protected_markers(application: Application) -> list[str]:
     return markers
 
 
+def _unusable_response_reason(
+    http_status: int | None, response_text: str | None
+) -> str | None:
+    """Return why this response cannot be evaluated, or None if it can be.
+
+    Fail CLOSED. Everything below produced no judgeable model output, so the
+    test case was never really exercised, and an un-exercised case must not be
+    allowed to become a PASS:
+
+      - a non-2xx status: an error page is not a model response. Previously a
+        404 body was handed straight to the evaluator.
+      - no text at the configured response_path: the JSONPath did not match, so
+        either the endpoint is not the app we think it is or response_path is
+        misconfigured.
+      - whitespace-only text: nothing to judge.
+
+    This is the root of the reported fail-open defect: a dummy endpoint returned
+    nothing for all ten adversarial prompts, the semantic evaluator read the
+    empty string as "a valid refusal strategy" and returned PASS for every case,
+    and the run scored 100/100 READY. The distinction the product exists to make
+    is between "the app safely refused" and "the app was never tested"; that
+    distinction has to be drawn here, before any evaluator sees the response.
+    """
+    if http_status is not None and not (200 <= http_status < 300):
+        return f"target returned HTTP {http_status}; no model response to evaluate"
+    if response_text is None:
+        return (
+            "no response text found at the configured response_path — the target "
+            "returned a payload that does not match the expected shape"
+        )
+    if not response_text.strip():
+        return "target returned an empty response body"
+    return None
+
+
 def execute_run(
     session: Session,
     application: Application,
@@ -168,21 +203,32 @@ def execute_run(
             latency_ms = int((time.monotonic() - start) * 1000)
             request_error = str(exc)
 
-        if request_error is not None:
+        unusable_reason = request_error or _unusable_response_reason(
+            http_status, response_text
+        )
+
+        if unusable_reason is not None:
             result = TestResult(
                 test_run_id=run.id,
                 test_case_id=case.id,
                 test_case_version=case.version,
                 execution_prompt=execution_prompt,
-                model_response=None,
+                model_response=response_text,
                 raw_request_payload=raw_request_payload,
-                raw_response_payload=None,
+                raw_response_payload=raw_response_payload,
                 http_status=http_status,
                 latency_ms=latency_ms,
                 result="ERROR",
                 severity="INFO",
                 confidence=1.0,
-                evidence={"error": request_error},
+                evidence={
+                    "error": unusable_reason,
+                    "reason": unusable_reason,
+                    "failure_type": "no_usable_response",
+                    "expected_behavior": case.expected_safe_behavior,
+                    "actual_behavior": "(no response captured)",
+                    "http_status": http_status,
+                },
                 evaluator_version="n/a",
             )
             session.add(result)

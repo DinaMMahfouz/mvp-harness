@@ -49,6 +49,11 @@ class ReviewResultLike(Protocol):
     confidence: float
 
 
+# A result only counts as evidence if the target actually answered and an
+# evaluator actually judged it. ERROR means the case was never exercised.
+CONCLUSIVE_RESULTS = ("PASS", "FAIL", "REVIEW")
+
+
 @dataclass
 class ReleaseDecisionResult:
     decision: str  # "READY" | "READY_WITH_CONDITIONS" | "NOT_READY"
@@ -69,6 +74,7 @@ def _severity_at_least(severity: str, floor: str) -> bool:
 def compute_assurance_score(
     open_findings: Iterable[FindingLike],
     executed_test_cases: Iterable[TestCaseLike],
+    had_conclusive_results: bool = True,
 ) -> float:
     """assurance_score = 100 * (1 - open_weight / max_weight), clamped [0,100].
 
@@ -77,7 +83,19 @@ def compute_assurance_score(
     max_weight  = sum(weight(test_case.severity_if_failed) for test_case in
                        the executed suite)
     max_weight == 0 -> 100.0 (nothing to score against, treat as fully clear).
+
+    `had_conclusive_results=False` means the run produced no PASS/FAIL/REVIEW at
+    all - every case errored, so nothing was tested. That returns 0.0, NOT 100.0.
+    The old code reached 100.0 by a defensible-looking route: no findings were
+    raised (only FAIL/REVIEW create findings), so open_weight was 0, so the
+    formula said "perfectly clear". But zero findings from zero evidence is not
+    the same as zero findings from a clean run, and collapsing the two is what
+    let an unreachable endpoint score 100/100 READY. Absence of evidence is
+    scored as absence of assurance.
     """
+    if not had_conclusive_results:
+        return 0.0
+
     open_weight = sum(SEVERITY_WEIGHTS[f.severity] for f in open_findings)
     max_weight = sum(SEVERITY_WEIGHTS[tc.severity_if_failed] for tc in executed_test_cases)
     if max_weight == 0:
@@ -99,6 +117,8 @@ def compute_release_decision(
     regression_count: int,
     assurance_score: float,
     has_retest: bool = True,
+    conclusive_result_count: int | None = None,
+    error_result_count: int = 0,
 ) -> ReleaseDecisionResult:
     """Deterministic NOT_READY / READY_WITH_CONDITIONS / READY decision.
 
@@ -114,6 +134,33 @@ def compute_release_decision(
     required_categories = set(REQUIRED_CATEGORIES_BY_APP_TYPE.get(app_type, []))
 
     open_findings = [f for f in all_findings if f.status in OPEN_FINDING_STATUSES]
+
+    # --- Coverage gate: did this run test anything at all? -----------------
+    #
+    # Runs BEFORE the finding checks, because those checks are all of the form
+    # "is there evidence of a problem?" - and with no evidence at all they are
+    # trivially satisfied, which reads as safety. A run in which every case
+    # errored has no findings, no open CRITICALs and no failed categories, so it
+    # sailed through every gate below to an unconditional READY at 100/100.
+    #
+    # `conclusive_result_count=None` means the caller did not supply coverage
+    # information (the pure-function unit tests do this); the gate is then
+    # skipped rather than guessed at. Every DB-facing caller supplies it.
+    if conclusive_result_count is not None and conclusive_result_count == 0:
+        return ReleaseDecisionResult(
+            decision="NOT_READY",
+            blocking_findings_count=0,
+            conditions=[],
+            rationale=(
+                f"No test case produced a conclusive result: all {error_result_count} "
+                "executed case(s) ended in ERROR, meaning the target application "
+                "returned nothing this run could evaluate. The application was not "
+                "tested, so no assurance can be claimed — this is NOT_READY because "
+                "the evidence is missing, not because a specific failure was found. "
+                "Check that the endpoint URL, request_template and response_path are "
+                "correct and that the target is reachable, then re-run."
+            ),
+        )
 
     # --- NOT_READY checks -------------------------------------------------
     critical_open = [f for f in open_findings if f.severity == "CRITICAL"]
@@ -174,8 +221,14 @@ def compute_release_decision(
         r for r in review_results if r.result == "REVIEW" and r.confidence < 0.6
     ]
 
-    if high_findings or critical_accept_risk or unresolved_low_confidence_reviews:
+    if high_findings or critical_accept_risk or unresolved_low_confidence_reviews or error_result_count:
         conditions = []
+        if error_result_count:
+            conditions.append(
+                f"{error_result_count} test case(s) ended in ERROR and were never "
+                "actually evaluated — coverage for this run is incomplete, so the "
+                "assurance score understates what remains unknown."
+            )
         if critical_accept_risk:
             conditions.append(
                 f"{len(critical_accept_risk)} CRITICAL-severity finding(s) marked "
@@ -278,18 +331,23 @@ def score_run(session, run) -> float:
             )
         )
     )
-    test_case_ids = [
-        r.test_case_id
-        for r in session.exec(select(TestResult).where(TestResult.test_run_id == run.id))
-    ]
+    results = list(session.exec(select(TestResult).where(TestResult.test_run_id == run.id)))
+
+    # Only cases that actually produced a judgement contribute to max_weight.
+    # An ERROR case was never exercised, so counting its severity_if_failed as
+    # "successfully covered weight" would inflate the denominator and make the
+    # score look better the more the run failed to reach the target.
+    conclusive = [r for r in results if r.result.value in CONCLUSIVE_RESULTS]
+    conclusive_case_ids = [r.test_case_id for r in conclusive]
     executed_cases = (
-        list(session.exec(select(TestCase).where(TestCase.id.in_(test_case_ids))))
-        if test_case_ids
+        list(session.exec(select(TestCase).where(TestCase.id.in_(conclusive_case_ids))))
+        if conclusive_case_ids
         else []
     )
     score = compute_assurance_score(
         [type("F", (), {"severity": f.severity.value})() for f in open_findings],
         [type("C", (), {"severity_if_failed": c.severity_if_failed.value})() for c in executed_cases],
+        had_conclusive_results=bool(conclusive),
     )
     run.assurance_score = score
     session.add(run)
@@ -325,10 +383,17 @@ def decide_release(session, application, run) -> ReleaseDecisionResult:
     results = list(session.exec(select(TestResult).where(TestResult.test_run_id == run.id)))
     review_results = [r for r in results if r.result.value == "REVIEW"]
 
-    test_case_ids = [r.test_case_id for r in results]
+    conclusive = [r for r in results if r.result.value in CONCLUSIVE_RESULTS]
+    error_results = [r for r in results if r.result.value == "ERROR"]
+
+    # A category counts as executed only if at least one of its cases produced a
+    # conclusive result. Deriving this from every row regardless of outcome meant
+    # a run where every case errored still satisfied "all required categories
+    # executed" -- the last gate that could have caught an untested application.
+    conclusive_case_ids = [r.test_case_id for r in conclusive]
     executed_categories = set()
-    if test_case_ids:
-        cases = list(session.exec(select(TestCase).where(TestCase.id.in_(test_case_ids))))
+    if conclusive_case_ids:
+        cases = list(session.exec(select(TestCase).where(TestCase.id.in_(conclusive_case_ids))))
         executed_categories = {c.category.value for c in cases}
 
     comparison = list(
@@ -357,4 +422,6 @@ def decide_release(session, application, run) -> ReleaseDecisionResult:
         regression_count=regression_count,
         assurance_score=run.assurance_score or 0.0,
         has_retest=bool(comparison),
+        conclusive_result_count=len(conclusive),
+        error_result_count=len(error_results),
     )
